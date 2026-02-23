@@ -14,9 +14,6 @@
         </span>
       </span>
     </div>
-    <div class="absolute top-6 right-8 z-50">
-      <WalletButton />
-    </div>
     <div v-if="mode === 'landing'" class="min-h-screen flex items-center justify-center">
       <div class="w-full max-w-6xl px-6">
         <div class="relative">
@@ -50,11 +47,11 @@
           <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
             <button
               @click="submitTop"
-              class="rounded px-3 py-2 focus:outline-none active:scale-95 transition-transform"
+              class="h-9 w-9 rounded-full bg-emerald-500 hover:bg-emerald-600 focus:outline-none active:scale-95 transition-all flex items-center justify-center"
               type="button"
               aria-label="Refresh search"
             >
-              <span class="text-gray-300 text-3xl">⟳</span>
+              <span class="text-white text-xl leading-none">⟳</span>
             </button>
           </div>
         </div>
@@ -494,29 +491,11 @@ onMounted(() => {
   try { fetchAirdrops(); } catch (e) { /* silent */ }
   setInterval(fetchSuiMarketPrice, 60000); // refresh every 60s
 });
-import { UniversalConnector } from "@reown/appkit-universal-connector";
-import { getUniversalConnector } from "./walletConfig";
-import * as WalletButtonRaw from "./components/WalletButton.vue";
 import * as AdviceButtonRaw from "./components/AdviceButton.vue";
 
 // Some TypeScript setups flag SFCs as having no default export; normalize here
-const WalletButton = (WalletButtonRaw as any).default || (WalletButtonRaw as any);
 const AdviceButton = (AdviceButtonRaw as any).default || (AdviceButtonRaw as any);
 
-const universalConnector = ref<UniversalConnector>();
-const session = ref<any>();
-
-onMounted(async () => {
-  universalConnector.value = await getUniversalConnector();
-  session.value = universalConnector.value.provider.session;
-});
-
-watch(
-  () => universalConnector.value?.provider.session,
-  (newSession) => {
-    session.value = newSession;
-  }
-);
 // Net worth in SUI
 const suiToken = computed(() =>
   tokensSorted.value.find((t) => t.symbol?.toUpperCase() === "SUI")
@@ -634,7 +613,8 @@ const result = ref<unknown | null>(null);
 
 const refreshing = ref<Record<string, boolean>>({});
 
-const PRICE_ENDPOINT = "https://suiport.mailberkayoztunc.workers.dev/price";
+const API_BASE = import.meta.env.VITE_API_BASE || "https://suiport.mailberkayoztunc.workers.dev";
+const PRICE_ENDPOINT = `${API_BASE}/price`;
 
 function isRefreshing(coinType: any) {
   if (!coinType) return false;
@@ -690,7 +670,7 @@ async function refreshPrice(coinType: any) {
   }
 }
 
-const BASE_URL = "https://suiport.mailberkayoztunc.workers.dev/wallet";
+const BASE_URL = `${API_BASE}/wallet`;
 
 async function fetchWallet(address: string) {
   const addr = address.trim();
@@ -716,7 +696,7 @@ async function fetchWallet(address: string) {
 }
 
 // Pool checker integration
-const POOL_BASE = "https://suiport.mailberkayoztunc.workers.dev/api/wallet";
+const POOL_BASE = `${API_BASE}/api/wallet`;
 const poolLoading = ref(false);
 const poolError = ref<string | null>(null);
 const poolResult = ref<any | null>(null);
@@ -897,7 +877,14 @@ const tokensEnriched = computed(() =>
   tokensMerged.value.map((t: any) => {
     const symbol = t?.metadata?.symbol ?? "";
     const name = t?.metadata?.name ?? "";
-    const iconUrl = t?.metadata?.iconUrl || "";
+    const coinType = t?.coinType ?? symbol;
+    
+    // Automatically set SUI logo for SUI token
+    let iconUrl = t?.metadata?.iconUrl || "";
+    if (coinType === "0x2::sui::SUI") {
+      iconUrl = "https://cdn.prod.website-files.com/6425f546844727ce5fb9e5ab/659d970f061dbfe7ca0e47c0_emblem-sui-w.svg";
+    }
+    
     const amount = toHumanAmount(t?.balance, t?.metadata?.decimals);
     const valueUSDRaw = typeof t?.valueUSD === "number" ? t.valueUSD : 0;
     const priceUSD =
@@ -905,7 +892,7 @@ const tokensEnriched = computed(() =>
     const valueUSDFinal =
       valueUSDRaw > 0 ? valueUSDRaw : priceUSD ? priceUSD * amount : 0;
     return {
-      coinType: t?.coinType ?? symbol,
+      coinType,
       symbol,
       name,
       iconUrl,
@@ -954,7 +941,7 @@ function nextPage() {
 const airdrops = ref<any[]>([]);
 const airdropLoading = ref(false);
 const airdropError = ref<string | null>(null);
-const AIRDROP_ENDPOINT = "https://suiport.mailberkayoztunc.workers.dev/api/airdrop-list";
+const AIRDROP_ENDPOINT = `${API_BASE}/api/airdrop-list`;
 
 const totalAirdropsUSD = computed(() => {
   return airdrops.value.reduce((sum, a) => {

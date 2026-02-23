@@ -5,10 +5,33 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     proxy: {
-      '/api/wallet': {
-        target: 'https://suiport.mailberkayoztunc.workers.dev',
+      '/wallet': {
+        target: 'http://localhost:8787',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/wallet/, '/wallet'),
+      },
+      '/price': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
+      '/api': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
+      '/graphql': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
+      '/update-sui-price': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
+      '/sui-price-history': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
+      '/mmt-tokens': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
       },
     },
   },

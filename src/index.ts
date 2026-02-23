@@ -153,11 +153,12 @@ interface WalletCache {
   lastUpdate: number;
 }
 
-const CACHE_DURATION = 15 * 60 ; // 15 minutes in milliseconds
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
 const walletCache = new Map<string, WalletCache>();
 
 
-app.get("/price/:tokenAddress", async (c) => {
+// Legacy price endpoint - redirects to the main /price/:tokenType handler below
+app.get("/price-direct/:tokenAddress", async (c) => {
   const tokenAddress = c.req.param('tokenAddress');
   const tokenPrice = await getTokenPrice(tokenAddress,"0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC");
   // update token price in database
@@ -249,11 +250,11 @@ app.get("/price/:tokenType", async (c) => {
   console.log(`[API] Database service initialized for token: ${tokenType}`);
   
   try {
-    // Check DB first
+    // Check DB first - only return cache if token has a valid price and is not stale
     console.log(`[API] Checking database for token: ${tokenType}`);
     const token = await db.getToken(tokenType);
     
-    if (token) {
+    if (token && token.price_usd > 0) {
       console.log(`[API] Found token in database: ${tokenType}`);
       const isStale = await db.isTokenStale(tokenType);
       console.log(`[API] Token data is${isStale ? '' : ' not'} stale`);
